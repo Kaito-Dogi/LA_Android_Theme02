@@ -11,14 +11,20 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+
+        //残り手数の定数。
+        private const val HAND_LIMIT = 12
+    }
+
     //何枚カードをめくったか数える変数。
     var turnUpCount = 0
     //揃えたペア数を数える変数。
     var pairCount = 0
     //ゲーム中かどうかを管理する変数。
     var isPlaying = 0
-    //残り時間のセット。
-    var second = 30
+    //残り手数のセット。
+    var handLimit = HAND_LIMIT
 
     //めくったカードの場所を記録する配列。
     val memoryPosition: Array<Int> = arrayOf(-1, -1)
@@ -28,6 +34,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        //初期手数を表示する。
+        textView.text = "残り${handLimit}手"
 
         //カードの番号の配列。
         val cardNums: Array<Int> = arrayOf(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8)
@@ -70,34 +79,6 @@ class MainActivity : AppCompatActivity() {
             MediaPlayer.create(applicationContext, R.raw.incorrect)
         )
 
-        //タイマーを設定する。
-        val timer: CountDownTimer = object : CountDownTimer(second*1000.toLong(), 1000) {
-
-            //タイマーが終了した時に呼ばれる。
-            override fun onFinish() {
-
-                //「もう一度」ボタンを表示。
-                changeButtonStatus("もう一度", true, "#3700B3", button)
-
-                //ゲームオーバーと表示。
-                textView.text = "GAME OVER !"
-
-                //初期状態に戻す。
-                allReset()
-            }
-
-            //カウントダウンされる毎に呼び出される。
-            override fun onTick(p0: Long) {
-
-                //残り時間を1秒減らす。
-                second -= 1
-
-                //残り時間を表示する。
-                textView.text = "残り時間 $second"
-
-            }
-        }
-
         button.setOnClickListener {
 
             when(isPlaying) {
@@ -110,14 +91,14 @@ class MainActivity : AppCompatActivity() {
                         imageViews[i].isEnabled = true
                     }
 
+                    //初期手数を表示する。
+                    textView.text = "残り${handLimit}手"
+
                     //カードの番号をシャッフルする。
                     cardNums.shuffle()
 
                     //裏返すボタンを押せなくする。
                     changeButtonStatus("裏返す", true, "#585858", button)
-
-                    //タイマーを開始する。
-                    timer.start()
 
                     //プレイ中。
                     isPlaying = 1
@@ -190,6 +171,12 @@ class MainActivity : AppCompatActivity() {
                                 8 -> imageViews[i].setImageResource(cardImages[7])
                             }
 
+                            //手数を減らす。
+                            handLimit -= 1
+
+                            //残り手数を表示する。
+                            textView.text = "残り${handLimit}手"
+
                             //カードを押せなくする。
                             imageViews[i].isEnabled = false
 
@@ -207,14 +194,11 @@ class MainActivity : AppCompatActivity() {
 
                                 if (pairCount == 8) {
 
-                                    //タイマーを停止。
-                                    timer.cancel()
-
                                     //「もう一度」ボタンを押せるようにする。
                                     changeButtonStatus("もう一度", true, "#3700B3", button)
 
                                     //クリア画面の表示。
-                                    textView.text = "GAME CLEAR !"
+                                    textView.text = "ゲームクリア！"
 
                                     //初期状態に戻す。
                                     allReset()
@@ -226,6 +210,21 @@ class MainActivity : AppCompatActivity() {
                                 //正解の音声を流す。
                                 mediaPlayers[0].seekTo(0)
                                 mediaPlayers[0].start()
+
+                            } else if(handLimit == 0) {
+
+                                //不正解の音声を流す。
+                                mediaPlayers[1].seekTo(0)
+                                mediaPlayers[1].start()
+
+                                //「もう一度」ボタンを表示。
+                                changeButtonStatus("もう一度", true, "#3700B3", button)
+
+                                //ゲームオーバーと表示。
+                                textView.text = "ゲームオーバー！"
+
+                                //初期状態に戻す。
+                                allReset()
 
                             } else {
                                 //めくった枚数を更新。
@@ -257,8 +256,8 @@ class MainActivity : AppCompatActivity() {
         //プレイ終了。
         isPlaying = 0
 
-        //残り時間をリセット。
-        second = 30
+        //残り手数をリセット。
+        handLimit = HAND_LIMIT
 
         //めくったカードの情報をリセット。
         for (i in 0..1) {
